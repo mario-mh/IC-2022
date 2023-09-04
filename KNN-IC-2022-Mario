@@ -1,0 +1,86 @@
+# Author: Mario M.H.
+# Engineering Physics undergraduate at UEMS
+# Project: Classificação e Agrupamento de Dados utilizando conceitos dos algoritmos k-NN e k-means
+# Subproject: Breast Cancer Classification with KNN
+
+# Code start
+import pandas as pd
+import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+def to_target(x):
+    """Map targets to target names"""
+    return list(dataset.target_names)[x]
+
+# Load data
+dataset = load_breast_cancer()
+df = pd.DataFrame(dataset.data,columns=dataset.feature_names)
+df['target'] = pd.Series(dataset.target)
+df['target_names'] = df['target'].apply(to_target)
+display(df)
+
+# Define predictor and predicted datasets
+X = df.drop(['target','target_names'], axis=1).values
+y = df['target_names'].values
+
+# Split training and test set
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+# Train the model
+knn = KNeighborsClassifier(n_neighbors=6)
+knn.fit(X_train, y_train)
+y_pred = knn.predict(X_test)
+
+# Compute accuracy of the model
+test_acc = knn.score(X_test, y_test)
+train_acc = knn.score(X_train, y_train)
+print("Test Accuracy   :", test_acc)
+print("Train Accuracy  :", train_acc)
+
+from sklearn.metrics import recall_score
+
+recall_scr = recall_score(y_test, y_pred, pos_label= 'benign')
+print("Recall Score for benign  :", recall_scr)
+recall_scr = recall_score(y_test, y_pred, pos_label= 'malignant')
+print("Recall Score for malignant  :", recall_scr)
+#--> Note that in binary classification, recall of the positive class is also known as “sensitivity”; recall of the negative class is “specificity”.
+
+# Map string values to integer labels
+label_mapping = {'benign': 1, 'malignant': 0}
+y_predROC = np.array([label_mapping[val] for val in y_pred])
+y_testROC = np.array([label_mapping[val] for val in y_test])
+
+
+#ROC Curve
+from sklearn.metrics import roc_curve
+
+fpr, tpr, thresholds = roc_curve(y_testROC, y_predROC, pos_label=1)
+plt.plot(fpr, tpr)
+plt.plot([0, 1], [0, 1], '--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.show()
+
+
+# Confusion Matrix
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test,y_pred)
+cm
+
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred, labels=knn.classes_)
+color = 'white'
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=knn.classes_)
+disp = disp.plot(cmap=plt.cm.Blues,values_format='g')
+plt.show()
+
+# Classification report
+from sklearn.metrics import classification_report
+print(classification_report(y_test, y_pred))
